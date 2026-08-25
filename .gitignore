@@ -1,0 +1,85 @@
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.pyre/
+.coverage
+coverage.xml
+htmlcov/
+
+# Virtual environments and local tooling
+.venv/
+venv/
+env/
+.env
+.env.*
+!.env.example
+.python-version
+
+# Build and package artifacts
+build/
+dist/
+wheels/
+*.egg-info/
+*.egg
+
+# Logs and experiment trackers
+*.log
+logs/
+runs/
+wandb/
+swanlog/
+swanlab/
+tensorboard/
+
+# MiniMind generated datasets
+dataset_ko/
+*.jsonl.tmp
+*.complete.json
+manifest.json
+
+# Training outputs and checkpoints
+out/
+checkpoints/
+checkpoint*/
+sglang_ckpt*/
+model_learn_tokenizer/
+
+# Model weights and exported model artifacts
+*.pt
+*.pth
+*.bin
+*.safetensors
+*.ckpt
+*.onnx
+*.gguf
+*.npz
+*.npy
+
+# Hugging Face / dataset caches
+.cache/
+cache/
+hf_cache/
+huggingface/
+.huggingface/
+
+# Local upstream reference clone
+upstream_minimind/
+
+# OS and editor files
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.orig
