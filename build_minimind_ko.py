@@ -5,7 +5,6 @@ MiniMind-3 upstream JSONL 스키마에 맞는 한국어 학습 데이터셋을 �
 
 검증 기준:
   dataset/lm_dataset.py
-  trainer/train_agent.py
 
 설치:
   uv pip install -U datasets huggingface_hub tqdm
@@ -22,8 +21,6 @@ MiniMind-3 upstream JSONL 스키마에 맞는 한국어 학습 데이터셋을 �
   sft_t2t.jsonl
   dpo.jsonl
   rlaif.jsonl
-  agent_rl.jsonl
-  agent_rl_math.jsonl
   manifest.json
 
 주의:
@@ -31,8 +28,6 @@ MiniMind-3 upstream JSONL 스키마에 맞는 한국어 학습 데이터셋을 �
   해당 필드는 JSON 문자열로 직렬화합니다.
 - RLAIFDataset은 conversations[:-1]을 rollout prompt로 쓰므로 마지막
   assistant placeholder를 유지합니다.
-- AgentRLDataset은 top-level `gt`를 요구합니다.
-- Agent RL 샘플은 trainer/train_agent.py의 여섯 가지 도구만 사용합니다.
 """
 
 from __future__ import annotations
@@ -81,8 +76,6 @@ PRESETS = {
         "sft_full": 15_000,
         "dpo": 3_000,
         "rlaif": 3_000,
-        "agent": 2_000,
-        "agent_math": 3_000,
         "tool_sft_ratio": 0.08,
     },
     "mini": {
@@ -92,8 +85,6 @@ PRESETS = {
         "sft_full": 200_000,
         "dpo": 20_000,
         "rlaif": 30_000,
-        "agent": 20_000,
-        "agent_math": 30_000,
         "tool_sft_ratio": 0.10,
     },
     "full": {
@@ -103,14 +94,12 @@ PRESETS = {
         "sft_full": 600_000,
         "dpo": 60_000,
         "rlaif": 100_000,
-        "agent": 80_000,
-        "agent_math": 120_000,
         "tool_sft_ratio": 0.12,
     },
 }
 
 # -----------------------------------------------------------------------------
-# Exact tool set from current MiniMind trainer/train_agent.py
+# Tool set used by synthetic tool-call SFT samples
 # -----------------------------------------------------------------------------
 TOOLS = [
     {"type": "function", "function": {"name": "calculate_math", "description": "수식을 계산합니다.", "parameters": {"type": "object", "properties": {"expression": {"type": "string"}}, "required": ["expression"]}}},
@@ -121,7 +110,7 @@ TOOLS = [
     {"type": "function", "function": {"name": "translate_text", "description": "텍스트를 번역합니다.", "parameters": {"type": "object", "properties": {"text": {"type": "string"}, "target_language": {"type": "string"}}, "required": ["text", "target_language"]}}},
 ]
 
-# Must mirror current train_agent.py's mock environment.
+# Mock environment for synthetic tool-call SFT samples.
 WEATHER_DATA = {
     "서울": ("28°C", "맑음"), "부산": ("25°C", "흐림"), "제주": ("30°C", "비"),
     "Tokyo": ("12°C", "맑음"), "New York": ("8°C", "흐림"),
@@ -615,43 +604,6 @@ def collect_rlaif(sft_path: Path, target: int, seed: int) -> Iterator[Dict[str, 
     yield from candidates[:target]
 
 # -----------------------------------------------------------------------------
-# Agent RL: exact AgentRLDataset contract = conversations + top-level gt
-# -----------------------------------------------------------------------------
-def make_agent_rl_sample(rng: random.Random, math_only: bool = False) -> Dict[str, Any]:
-    maker = make_math_case if math_only else rng.choice(TOOL_CASE_MAKERS)
-    q, _call, _tool_result, _final_answer, gt = maker(rng)
-    # AgentRLDataset does messages[:-1], so the final assistant placeholder is mandatory.
-    # The tool list is carried on system.tools, exactly as SFTDataset/AgentRLDataset parse it.
-    return {
-        "conversations": [
-            {"role": "system", "content": SYSTEM_TOOL_TEXT, "tools": json_dumps(TOOLS)},
-            {"role": "user", "content": q},
-            {"role": "assistant", "content": ""},
-        ],
-        "gt": [gt],
-    }
-
-
-def collect_agent(target: int, seed: int, math_only: bool = False) -> Iterator[Dict[str, Any]]:
-    rng = random.Random(seed)
-    seen = set()
-    produced = 0
-    duplicate_retries = 0
-    max_duplicate_retries = max(10_000, target)
-    while produced < target:
-        item = make_agent_rl_sample(rng, math_only=math_only)
-        h = digest(json_dumps(item))
-        if h in seen:
-            duplicate_retries += 1
-            if math_only and duplicate_retries < max_duplicate_retries:
-                continue
-        else:
-            seen.add(h)
-            duplicate_retries = 0
-        produced += 1
-        yield item
-
-# -----------------------------------------------------------------------------
 # Validation against current MiniMind reader contracts
 # -----------------------------------------------------------------------------
 def validate_pretrain(obj: Dict[str, Any]) -> None:
@@ -686,22 +638,8 @@ def validate_rlaif(obj: Dict[str, Any]) -> None:
     assert conv[-1].get("role") == "assistant"
 
 
-def validate_agent(obj: Dict[str, Any]) -> None:
-    validate_sft(obj)
-    assert isinstance(obj.get("gt"), list)
-    assert obj["gt"]
-    conv = obj["conversations"]
-    assert conv[-1].get("role") == "assistant"
-    systems = [m for m in conv if m.get("role") == "system" and m.get("tools")]
-    assert systems, "Agent RL requires system.tools"
-    parsed = json.loads(systems[0]["tools"])
-    valid_names = {t["function"]["name"] for t in parsed}
-    upstream_names = {t["function"]["name"] for t in TOOLS}
-    assert valid_names <= upstream_names
-
-
 def validate_file(path: Path, kind: str, limit: int = 1000) -> int:
-    fn = {"pretrain": validate_pretrain, "sft": validate_sft, "dpo": validate_dpo, "rlaif": validate_rlaif, "agent": validate_agent}[kind]
+    fn = {"pretrain": validate_pretrain, "sft": validate_sft, "dpo": validate_dpo, "rlaif": validate_rlaif}[kind]
     n = 0
     for obj in iter_jsonl(path):
         fn(obj); n += 1
@@ -719,8 +657,8 @@ def main() -> None:
     p.add_argument("--preset", choices=PRESETS.keys(), default="mini", help="생성 규모: tiny, mini, full")
     p.add_argument("--output", default="dataset_ko", help="출력 디렉터리")
     p.add_argument("--seed", type=int, default=SEED, help="랜덤 시드")
-    p.add_argument("--skip-full", action="store_true", help="mini 파일과 RL 파일만 생성")
-    p.add_argument("--only", default="", help="쉼표로 구분한 파일명만 생성합니다. 예: agent_rl_math.jsonl,sft_t2t.jsonl")
+    p.add_argument("--skip-full", action="store_true", help="full 규모 파일을 건너뜁니다")
+    p.add_argument("--only", default="", help="쉼표로 구분한 파일명만 생성합니다. 예: sft_t2t.jsonl,dpo.jsonl")
     args = p.parse_args()
 
     cfg = PRESETS[args.preset]
@@ -783,10 +721,6 @@ def main() -> None:
         build("dpo.jsonl", collect_dpo(cfg["dpo"], args.seed + 40), "dpo", cfg["dpo"])
     if wants("rlaif.jsonl"):
         build("rlaif.jsonl", collect_rlaif(sft_full, cfg["rlaif"], args.seed + 50), "rlaif", cfg["rlaif"])
-    if wants("agent_rl.jsonl"):
-        build("agent_rl.jsonl", collect_agent(cfg["agent"], args.seed + 60, math_only=False), "agent", cfg["agent"])
-    if wants("agent_rl_math.jsonl"):
-        build("agent_rl_math.jsonl", collect_agent(cfg["agent_math"], args.seed + 70, math_only=True), "agent", cfg["agent_math"])
 
     manifest = out / "manifest.json"
     manifest.write_text(json.dumps(stats, ensure_ascii=False, indent=2), encoding="utf-8")

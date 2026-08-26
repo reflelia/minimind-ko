@@ -8,16 +8,19 @@ MiniMind-3 원본 프로젝트를 한국어 학습에 맞게 정리한 작업 �
 
 ```text
 build_minimind_ko.py   한국어 MiniMind 학습 데이터셋 생성기
+MODEL_ANALYSIS.md      MiniMind 모델 구조와 코드 분석 문서
 dataset/               MiniMind JSONL Dataset reader
 dataset_ko/            생성된 한국어 학습 데이터셋(깃 추적 제외)
 model/                 MiniMind 모델 정의와 tokenizer
-trainer/               pretrain, SFT, DPO, PPO, GRPO, Agent RL 학습 코드
+trainer/               pretrain, SFT, DPO, PPO, GRPO 학습 코드
 scripts/               API 서버, 웹 데모, tool-call 평가, 모델 변환 스크립트
 eval_llm.py            로컬 추론 및 대화 실행
 out/                   학습된 모델 가중치 저장 위치(깃 추적 제외)
 checkpoints/           학습 checkpoint 저장 위치(깃 추적 제외)
 upstream_minimind/     원본 MiniMind 클론 보관용(깃 추적 제외)
 ```
+
+모델 백본, dense/MoE 차이, aux loss, checkpoint 로딩 방식은 [MODEL_ANALYSIS.md](MODEL_ANALYSIS.md)에 정리되어 있습니다.
 
 ## 준비
 
@@ -57,7 +60,7 @@ uv run python build_minimind_ko.py --preset full
 특정 파일만 다시 생성할 수도 있습니다.
 
 ```powershell
-uv run python build_minimind_ko.py --preset full --only agent_rl_math.jsonl
+uv run python build_minimind_ko.py --preset full --only sft_t2t.jsonl
 ```
 
 생성 결과는 기본적으로 `dataset_ko/`에 저장됩니다.
@@ -69,11 +72,27 @@ sft_t2t_mini.jsonl
 sft_t2t.jsonl
 dpo.jsonl
 rlaif.jsonl
-agent_rl.jsonl
-agent_rl_math.jsonl
 ```
 
 현재 full 생성 기준으로 `sft_t2t.jsonl`은 공개 소스에서 확보 가능한 유효 샘플 수만큼 생성됩니다. 이 환경에서는 약 49만 줄이 생성되었습니다.
+
+## 사용 데이터셋
+
+`build_minimind_ko.py`는 아래 공개 데이터셋을 Hugging Face에서 가져와 MiniMind JSONL 형식으로 변환합니다.
+
+| 용도 | 데이터셋 | 설정 | 비중 | 설명 |
+| --- | --- | --- | --- | --- |
+| Pretrain | `AdaMLLab/KorMix` | `minhash_deduped` | `1.0` | 한국어 일반 텍스트 pretraining 데이터 |
+| SFT | `channelcorp/KoMagpie-raw` | 기본 train split | `0.55` | 한국어 지시/대화 SFT 데이터 |
+| SFT | `beomi/KoAlpaca-RealQA` | 기본 train split | `0.20` | 한국어 질의응답 SFT 데이터 |
+| SFT | `llami-team/Korean-OpenThoughts-114k-Normalized` | 기본 train split | `0.25` | 한국어 reasoning SFT 데이터 |
+| DPO | `maywell/ko_Ultrafeedback_binarized` | 기본 train split | `1.0` | 한국어 선호학습 DPO 데이터 |
+
+추가로 생성되는 데이터는 외부에서 직접 다운로드하지 않고 스크립트 내부에서 만듭니다.
+
+```text
+rlaif.jsonl          sft_t2t.jsonl에서 rollout prompt 형태로 샘플링
+```
 
 ## 기본 학습 순서
 
@@ -101,18 +120,6 @@ DPO 학습:
 uv run python trainer/train_dpo.py --data_path dataset_ko/dpo.jsonl --from_weight full_sft --save_weight dpo
 ```
 
-Agent RL 학습:
-
-```powershell
-uv run python trainer/train_agent.py --data_path dataset_ko/agent_rl.jsonl --from_weight full_sft --save_weight agent
-```
-
-수학 tool-call 전용 Agent RL:
-
-```powershell
-uv run python trainer/train_agent.py --data_path dataset_ko/agent_rl_math.jsonl --from_weight full_sft --save_weight agent_math
-```
-
 ## MoE 학습
 
 기본값은 dense 모델입니다. MoE 모델로 학습하려면 모든 단계에서 `--use_moe 1`을 붙여야 합니다.
@@ -128,7 +135,7 @@ MoE로 학습한 가중치는 추론할 때도 `--use_moe 1`이 필요합니다.
 uv run python eval_llm.py --weight full_sft_moe --save_dir out --load_from model --use_moe 1
 ```
 
-Dense와 MoE는 가중치 구조가 다르므로 `pretrain`, `full_sft`, `dpo`, `agent`, 추론 단계에서 같은 구조를 계속 사용해야 합니다.
+Dense와 MoE는 가중치 구조가 다르므로 `pretrain`, `full_sft`, `dpo`, 추론 단계에서 같은 구조를 계속 사용해야 합니다.
 
 ## 추론
 
@@ -136,12 +143,6 @@ SFT 모델:
 
 ```powershell
 uv run python eval_llm.py --weight full_sft --save_dir out --load_from model
-```
-
-Agent 모델:
-
-```powershell
-uv run python eval_llm.py --weight agent --save_dir out --load_from model
 ```
 
 OpenAI 호환 API 서버:

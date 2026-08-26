@@ -1,0 +1,174 @@
+{
+  "version": "1.0.0",
+  "lastScanned": 1787732025308,
+  "projectRoot": "c:\\Users\\user\\Desktop\\gitproj\\minimind-ko",
+  "techStack": {
+    "languages": [
+      {
+        "name": "Python",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "pyproject.toml",
+          "requirements.txt"
+        ]
+      }
+    ],
+    "frameworks": [],
+    "packageManager": "pip",
+    "runtime": null
+  },
+  "build": {
+    "buildCommand": null,
+    "testCommand": "pytest",
+    "lintCommand": "ruff check",
+    "devCommand": null,
+    "scripts": {}
+  },
+  "conventions": {
+    "namingStyle": null,
+    "importStyle": null,
+    "testPattern": null,
+    "fileOrganization": null
+  },
+  "structure": {
+    "isMonorepo": false,
+    "workspaces": [],
+    "mainDirectories": [
+      "scripts"
+    ],
+    "gitBranches": {
+      "defaultBranch": "main",
+      "branchingStrategy": null
+    }
+  },
+  "customNotes": [],
+  "directoryMap": {
+    "checkpoints": {
+      "path": "checkpoints",
+      "purpose": null,
+      "fileCount": 6,
+      "lastAccessed": 1787732025295,
+      "keyFiles": [
+        "dpo_768.pth",
+        "dpo_768_resume.pth",
+        "full_sft_768.pth",
+        "full_sft_768_resume.pth",
+        "pretrain_768.pth"
+      ]
+    },
+    "dataset": {
+      "path": "dataset",
+      "purpose": null,
+      "fileCount": 3,
+      "lastAccessed": 1787732025295,
+      "keyFiles": [
+        "dataset.md",
+        "lm_dataset.py",
+        "__init__.py"
+      ]
+    },
+    "dataset_ko": {
+      "path": "dataset_ko",
+      "purpose": null,
+      "fileCount": 17,
+      "lastAccessed": 1787732025295,
+      "keyFiles": [
+        "agent_rl.jsonl",
+        "agent_rl.jsonl.complete.json",
+        "agent_rl_math.jsonl",
+        "agent_rl_math.jsonl.complete.json",
+        "dpo.jsonl"
+      ]
+    },
+    "model": {
+      "path": "model",
+      "purpose": null,
+      "fileCount": 5,
+      "lastAccessed": 1787732025296,
+      "keyFiles": [
+        "model_lora.py",
+        "model_minimind.py",
+        "tokenizer.json",
+        "tokenizer_config.json",
+        "__init__.py"
+      ]
+    },
+    "out": {
+      "path": "out",
+      "purpose": "Build output",
+      "fileCount": 3,
+      "lastAccessed": 1787732025296,
+      "keyFiles": [
+        "dpo_768.pth",
+        "full_sft_768.pth",
+        "pretrain_768.pth"
+      ]
+    },
+    "scripts": {
+      "path": "scripts",
+      "purpose": "Build/utility scripts",
+      "fileCount": 5,
+      "lastAccessed": 1787732025296,
+      "keyFiles": [
+        "chat_api.py",
+        "convert_model.py",
+        "eval_toolcall.py",
+        "serve_openai_api.py",
+        "web_demo.py"
+      ]
+    },
+    "trainer": {
+      "path": "trainer",
+      "purpose": null,
+      "fileCount": 11,
+      "lastAccessed": 1787732025297,
+      "keyFiles": [
+        "rollout_engine.py",
+        "trainer_utils.py",
+        "train_agent.py",
+        "train_distillation.py",
+        "train_dpo.py"
+      ]
+    },
+    "upstream_minimind": {
+      "path": "upstream_minimind",
+      "purpose": null,
+      "fileCount": 7,
+      "lastAccessed": 1787732025297,
+      "keyFiles": [
+        "CODE_OF_CONDUCT.md",
+        "eval_llm.py",
+        "LICENSE",
+        "README.md",
+        "README_en.md"
+      ]
+    },
+    "__pycache__": {
+      "path": "__pycache__",
+      "purpose": null,
+      "fileCount": 6,
+      "lastAccessed": 1787732025297,
+      "keyFiles": [
+        "build_minimind_ko.cpython-312.pyc",
+        "cleanup_remaining_korean.cpython-312.pyc",
+        "eval_llm.cpython-312.pyc",
+        "final_han_cleanup.cpython-312.pyc",
+        "fix_korean_texts.cpython-312.pyc"
+      ]
+    },
+    "scripts\\scripts": {
+      "path": "scripts\\scripts",
+      "purpose": "Build/utility scripts",
+      "fileCount": 5,
+      "lastAccessed": 1787732025298,
+      "keyFiles": [
+        "chat_api.py",
+        "convert_model.py",
+        "eval_toolcall.py"
+      ]
+    }
+  },
+  "hotPaths": [],
+  "userDirectives": []
+}
